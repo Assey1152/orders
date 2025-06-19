@@ -49,6 +49,16 @@ class User(AbstractUser):
             "unique": _("A user with that username already exists."),
         },
     )
+    is_active = models.BooleanField(
+        _("active"),
+        default=False,
+        help_text=_(
+            "Designates whether this user should be treated as active. "
+            "Unselect this instead of deleting accounts."
+        ),
+    )
+    company = models.CharField(verbose_name='Компания', max_length=40, blank=True)
+    position = models.CharField(verbose_name='Должность', max_length=40, blank=True)
 
     type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES, default='buyer')
 

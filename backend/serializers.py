@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from backend.models import User, Contact, Shop, Category, ProductInfo, Product, ProductParameter
+from backend.models import User, Contact, Shop, Category, ProductInfo, Product, ProductParameter, Order, OrderItem
 
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -28,7 +28,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'first_name', 'last_name', 'email', 'type', 'contacts')
+        fields = ('id', 'first_name', 'last_name', 'email', 'type', 'company', 'position', 'contacts')
+        read_only_fields = ('id',)
 
 
 class LoginSerializer(serializers.Serializer):
@@ -111,4 +112,33 @@ class ProductInfoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProductInfo
-        fields = ('product', 'model', 'shop', 'quantity', 'price', 'price_rrc', 'product_parameter')
+        fields = ('id', 'product', 'model', 'shop', 'quantity', 'price', 'price_rrc', 'product_parameter')
+        read_only_fields = ('id',)
+
+
+class OrderedItemsSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = OrderItem
+        fields = ('id', 'product_info', 'quantity', 'order')
+        read_only_fields = ('id',)
+
+    def validate_quantity(self, value):
+        if value < 1:
+            raise serializers.ValidationError("Количество должно быть не менее 1")
+        return value
+
+
+class OrderedItemsFullSerializer(OrderedItemsSerializer):
+    product_info = ProductInfoSerializer()
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    order_items = OrderedItemsFullSerializer(many=True)
+    total_sum = serializers.DecimalField(max_digits=10, decimal_places=2)
+
+    class Meta:
+        model = Order
+        fields = ('id', 'order_items', 'total_sum', 'created_at', 'state', 'contact', )
+        read_only_fields = ('id',)
+
