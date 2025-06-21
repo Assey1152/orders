@@ -14,14 +14,6 @@ class ContactSerializer(serializers.ModelSerializer):
         }
 
 
-class RegisterSerializer(serializers.ModelSerializer):
-    contacts = ContactSerializer(read_only=True, many=True)
-
-    class Meta:
-        model = User
-        fields = ('email', 'username', 'password')
-
-
 class UserSerializer(serializers.ModelSerializer):
     """Serializer для пользователя."""
     contacts = ContactSerializer(read_only=True, many=True)
@@ -126,6 +118,11 @@ class OrderedItemsSerializer(serializers.ModelSerializer):
     def validate_quantity(self, value):
         if value < 1:
             raise serializers.ValidationError("Количество должно быть не менее 1")
+        return value
+
+    def validate_product_info(self, value):
+        if not ProductInfo.objects.filter(id=value.id).exists():
+            raise serializers.ValidationError("Продукт с таким ID не существует")
         return value
 
 

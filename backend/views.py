@@ -18,7 +18,7 @@ from requests import get
 import yaml
 from .permissions import IsVendor
 from django.db import IntegrityError
-
+from .signals import update_order_state_signal
 # Create your views here.
 
 
@@ -76,7 +76,7 @@ class VerifyEmailView(APIView):
     Класс для верификации почты пользователя
     """
 
-    def get(self, request):
+    def post(self, request):
         if {'email', 'token'}.issubset(request.data):
 
             verification_token = EmailVerificationToken.objects.filter(token=request.data['token'],
@@ -247,6 +247,9 @@ class PartnerState(APIView):
 
 
 class PartnerUpdate(APIView):
+    """
+    Класс для обновления прайса продавца
+    """
     permission_classes = (IsAuthenticated, IsVendor)
 
     def post(self, request):
@@ -406,6 +409,11 @@ class OrderView(APIView):
                     return Response({'Status': False, 'Errors': 'Ошибка'}, status=status.HTTP_400_BAD_REQUEST)
                 else:
                     if is_updated:
+                        update_order_state_signal.send(
+                            sender=self.__class__,
+                            user_id=request.user.id,
+                            order_id=request.data['id']
+                        )
                         return Response({'Status': True, 'detail': f'Заказ создан'},
                                         status=status.HTTP_200_OK)
 
