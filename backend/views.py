@@ -154,7 +154,7 @@ class ContactView(APIView):
     def put(self, request):
         if 'id' in request.data:
             if request.data['id'].isdigit():
-                contact = Contact.objects.filter(user_id=request.user.id, id=request.data['id'])
+                contact = Contact.objects.filter(user_id=request.user.id, id=request.data['id']).first()
                 if not contact:
                     return Response({'Status': False, 'Errors': 'Контакт не найден'}, status=status.HTTP_404_NOT_FOUND)
                 serializer = ContactSerializer(contact, data=request.data, partial=True)

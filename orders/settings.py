@@ -148,7 +148,8 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'user': '20/minute',
         'anon': '10/minute'
-    }
+    },
+    'TEST_REQUEST_DEFAULT_FORMAT': 'json',
 }
 # Email
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
