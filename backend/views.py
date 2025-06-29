@@ -213,7 +213,7 @@ class ProductInfoView(APIView):
         if shop_id:
             query = query & Q(shop_id=shop_id)
         if category_id:
-            query = query & Q(category_id=category_id)
+            query = query & Q(product__category_id=category_id)
         queryset = ProductInfo.objects.filter(query).select_related('shop', 'product__category').prefetch_related(
             'product_parameter__parameter').distinct()
         serializer = ProductInfoSerializer(queryset, many=True)
