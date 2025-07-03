@@ -18,7 +18,14 @@ from requests import get
 import yaml
 from .permissions import IsVendor
 from django.db import IntegrityError
-from .signals import update_order_state_signal
+# from .signals import update_order_state_signal
+from django.utils import timezone
+from datetime import timedelta
+from backend.tasks import send_mail_task
+from django_rest_passwordreset.serializers import EmailSerializer
+from django_rest_passwordreset.models import ResetPasswordToken, clear_expired, get_password_reset_token_expiry_time
+from django.conf import settings
+
 # Create your views here.
 
 
@@ -46,6 +53,17 @@ class UserRegisterView(APIView):
                 user = user_serializer.save()
                 user.set_password(request.data['password'])
                 user.save()
+
+                token_obj = EmailVerificationToken.objects.create(
+                    user=user,
+                    expires_at=timezone.now() + timedelta(hours=24)
+                )
+                send_mail_task.delay(
+                    subject="Подтвердите ваш email",
+                    message=f"Токен для подтверждения: {token_obj.token}",
+                    recipient_list=[user.email]
+                )
+
                 return Response({'Status': True}, status=status.HTTP_200_OK)
             else:
                 return Response({'Status': False,
@@ -91,6 +109,49 @@ class VerifyEmailView(APIView):
                 verification_token.delete()  # Можно удалить после использования
                 return Response({'Status': True, 'message': 'Email успешно подтвержден'}, status=status.HTTP_200_OK)
         return Response({'Status': False, 'error': 'Неверный email или токен'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ResetPasswordRequestView(APIView):
+    """
+    Класс для управления сбросом пароля пользователя с отправкой почты с помощью Celery
+    """
+
+    def post(self, request):
+        serializer = EmailSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            email = serializer.validated_data['email']
+
+            # Удалим все истекшие токены
+            password_reset_token_validation_time = get_password_reset_token_expiry_time()
+            now_minus_expiry_time = timezone.now() - timedelta(hours=password_reset_token_validation_time)
+            clear_expired(now_minus_expiry_time)
+
+            user = User.objects.filter(email=email).first()
+
+            if not user or not user.is_active:
+                return Response({'Status': False, 'error': 'Пользователь не найден'}, status=status.HTTP_400_BAD_REQUEST)
+
+            password_reset_tokens = user.password_reset_tokens.all()
+
+            # проверка, существует ли токен для пользователя
+            if password_reset_tokens.count():
+                # если существует хотя бы один, используем его
+                token = password_reset_tokens.first()
+            # если не существует, создаем новый
+            else:
+                token = ResetPasswordToken.objects.create(user=user)
+            if token:
+                # Направляем токен на почту
+                send_mail_task.delay(
+                    subject="Сброс пароля",
+                    message=f"Токен для сброса пароля: {token.key}",
+                    recipient_list=[token.user.email]
+                )
+
+            return Response({'Status': True}, status=status.HTTP_200_OK)
+        return Response({'Status': False,
+                         'Errors': serializer.errors},
+                        status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserDetailView(APIView):
@@ -409,11 +470,13 @@ class OrderView(APIView):
                     return Response({'Status': False, 'Errors': 'Ошибка'}, status=status.HTTP_400_BAD_REQUEST)
                 else:
                     if is_updated:
-                        update_order_state_signal.send(
-                            sender=self.__class__,
-                            user_id=request.user.id,
-                            order_id=request.data['id']
+                        order = Order.objects.get(user_id=request.user.id, id=request.data['id'])
+                        send_mail_task.delay(
+                            subject="Изменение статуса заказа",
+                            message=f"Статус заказа {order.id} изменён на {order.state}",
+                            recipient_list=[request.user.email]
                         )
+
                         return Response({'Status': True, 'detail': f'Заказ создан'},
                                         status=status.HTTP_200_OK)
 

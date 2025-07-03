@@ -1,16 +1,19 @@
 from django.contrib import admin
 from django.urls import path, include
-from backend.views import (UserRegisterView, UserLoginView, VerifyEmailView, UserDetailView,
+from backend.views import (UserRegisterView, UserLoginView, VerifyEmailView, UserDetailView, ResetPasswordRequestView,
                            ContactView, ShopsView, CategoriesView, ProductInfoView,
                            PartnerState, PartnerOrders, PartnerUpdate,
                            BasketView, OrderView)
+from django_rest_passwordreset.views import ResetPasswordConfirmViewSet
+
 
 urlpatterns = [
     path('user/register', UserRegisterView.as_view(), name='api_user_register'),
     path('user/register/confirm', VerifyEmailView.as_view(), name='verify_email'),
     path('user/login', UserLoginView.as_view(), name='user_login'),
     path('user/detail', UserDetailView.as_view(), name='user_detail'),
-    path('user/password_reset', include('django_rest_passwordreset.urls', namespace='password_reset')),
+    path('user/password_reset', ResetPasswordRequestView.as_view(), name='password_reset'),
+    path('password-reset/confirm/', ResetPasswordConfirmViewSet.as_view(), name='password_reset_confirm'),
     path('user/contact', ContactView.as_view(), name='contacts_list'),
     path('partner/state', PartnerState.as_view(), name='partner_state'),
     path('partner/update', PartnerUpdate.as_view(), name='partner_products_update'),
