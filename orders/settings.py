@@ -163,3 +163,6 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 DJANGO_REST_MULTITOKENAUTH_RESET_TOKEN_EXPIRY_HOURS = 24  # время жизни токена (в часах)
 
+# Celery settings
+CELERY_BROKER_URL = "redis://localhost:6379"
+CELERY_RESULT_BACKEND = "redis://localhost:6379"
