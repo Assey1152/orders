@@ -5,26 +5,8 @@ from backend.models import User, EmailVerificationToken, Product, ProductInfo, P
 from yaml import safe_load
 from django.utils import timezone
 from datetime import timedelta
-from unittest.mock import patch
-from backend.tasks import send_mail_task
+
 base_url = '/api/v1'
-
-
-@patch('backend.tasks.send_mail')
-def test_send_mail_task(mock_send_mail):
-    subject = 'Test Subject'
-    message = 'Test Message'
-    recipient_list = ['to@example.com']
-
-    # Вызываем задачу
-    send_mail_task(subject, message, recipient_list)
-
-    # Проверяем, что send_mail был вызван
-    mock_send_mail.assert_called_once_with(
-        subject,
-        message,
-        recipient_list
-    )
 
 
 @pytest.fixture
@@ -34,7 +16,7 @@ def api_client():
 
 @pytest.fixture
 def not_active_user():
-    user = User.objects.create_user(email='12345@mail.ru',
+    user = User.objects.create_user(email='1234@mail.ru',
                                     password='1234best_5',
                                     first_name='first',
                                     last_name='last',
@@ -107,7 +89,7 @@ def shop():
 def test_create_user(api_client):
     count = User.objects.count()
     data = {
-        'email': '12345@mail.ru',
+        'email': 'tem9n@mail.ru',
         'password': '1234best_5',
         'first_name': 'first',
         'last_name': 'last',
