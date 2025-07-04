@@ -4,7 +4,7 @@ from backend.views import (UserRegisterView, UserLoginView, VerifyEmailView, Use
                            ContactView, ShopsView, CategoriesView, ProductInfoView,
                            PartnerState, PartnerOrders, PartnerUpdate,
                            BasketView, OrderView)
-from django_rest_passwordreset.views import ResetPasswordConfirmViewSet
+from django_rest_passwordreset.views import ResetPasswordConfirm
 
 
 urlpatterns = [
@@ -13,7 +13,7 @@ urlpatterns = [
     path('user/login', UserLoginView.as_view(), name='user_login'),
     path('user/detail', UserDetailView.as_view(), name='user_detail'),
     path('user/password_reset', ResetPasswordRequestView.as_view(), name='password_reset'),
-    path('password-reset/confirm/', ResetPasswordConfirmViewSet.as_view(), name='password_reset_confirm'),
+    path('user/password_reset/confirm', ResetPasswordConfirm.as_view(), name='password_reset_confirm'),
     path('user/contact', ContactView.as_view(), name='contacts_list'),
     path('partner/state', PartnerState.as_view(), name='partner_state'),
     path('partner/update', PartnerUpdate.as_view(), name='partner_products_update'),

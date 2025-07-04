@@ -18,7 +18,6 @@ from requests import get
 import yaml
 from .permissions import IsVendor
 from django.db import IntegrityError
-# from .signals import update_order_state_signal
 from django.utils import timezone
 from datetime import timedelta
 from backend.tasks import send_mail_task
