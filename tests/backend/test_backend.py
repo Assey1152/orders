@@ -3,6 +3,8 @@ from rest_framework.test import APIClient
 from backend.models import User, EmailVerificationToken, Product, ProductInfo, Parameter, ProductParameter, \
     Shop, Order, OrderItem, Category, Contact
 from yaml import safe_load
+from django.utils import timezone
+from datetime import timedelta
 
 base_url = '/api/v1'
 
@@ -14,12 +16,17 @@ def api_client():
 
 @pytest.fixture
 def not_active_user():
-    return User.objects.create_user(email='1234@mail.ru',
+    user = User.objects.create_user(email='12345@mail.ru',
                                     password='1234best_5',
                                     first_name='first',
                                     last_name='last',
                                     company='company',
                                     position='345345')
+    EmailVerificationToken.objects.create(
+        user=user,
+        expires_at=timezone.now() + timedelta(hours=24)
+    )
+    return user
 
 
 @pytest.fixture
@@ -82,7 +89,7 @@ def shop():
 def test_create_user(api_client):
     count = User.objects.count()
     data = {
-        'email': '1234@mail.ru',
+        'email': '12345@mail.ru',
         'password': '1234best_5',
         'first_name': 'first',
         'last_name': 'last',
@@ -96,6 +103,7 @@ def test_create_user(api_client):
 
 @pytest.mark.django_db
 def test_confirm_user(api_client, not_active_user):
+
     token = EmailVerificationToken.objects.filter(user_id=not_active_user.id).first()
     data = {
         'email': not_active_user.email,
