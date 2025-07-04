@@ -16,7 +16,7 @@ def api_client():
 
 @pytest.fixture
 def not_active_user():
-    user = User.objects.create_user(email='12345@mail.ru',
+    user = User.objects.create_user(email='1234@mail.ru',
                                     password='1234best_5',
                                     first_name='first',
                                     last_name='last',
@@ -89,7 +89,7 @@ def shop():
 def test_create_user(api_client):
     count = User.objects.count()
     data = {
-        'email': '12345@mail.ru',
+        'email': 'tem9n@mail.ru',
         'password': '1234best_5',
         'first_name': 'first',
         'last_name': 'last',
