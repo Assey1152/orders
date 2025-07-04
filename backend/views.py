@@ -23,7 +23,6 @@ from datetime import timedelta
 from backend.tasks import send_mail_task
 from django_rest_passwordreset.serializers import EmailSerializer
 from django_rest_passwordreset.models import ResetPasswordToken, clear_expired, get_password_reset_token_expiry_time
-from django.conf import settings
 
 # Create your views here.
 
