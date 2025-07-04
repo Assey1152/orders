@@ -5,8 +5,26 @@ from backend.models import User, EmailVerificationToken, Product, ProductInfo, P
 from yaml import safe_load
 from django.utils import timezone
 from datetime import timedelta
-
+from unittest.mock import patch
+from backend.tasks import send_mail_task
 base_url = '/api/v1'
+
+
+@patch('backend.tasks.send_mail')
+def test_send_mail_task(mock_send_mail):
+    subject = 'Test Subject'
+    message = 'Test Message'
+    recipient_list = ['to@example.com']
+
+    # Вызываем задачу
+    send_mail_task(subject, message, recipient_list)
+
+    # Проверяем, что send_mail был вызван
+    mock_send_mail.assert_called_once_with(
+        subject,
+        message,
+        recipient_list
+    )
 
 
 @pytest.fixture
