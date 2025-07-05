@@ -1,5 +1,8 @@
 name: 'coverage'
 on:
+    push:
+      branches:
+            - main
     pull_request:
         branches:
             - main
@@ -56,7 +59,7 @@ jobs:
           - name: run Celery worker and tests
             run: |
               celery -A orders worker --loglevel=info & 
-              pytest --cov --cov-report xml:coverage.xml
+              pytest --cov-report xml:coverage.xml --cov=.
             env:
               POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
               POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
@@ -67,6 +70,7 @@ jobs:
               CELERY_RESULT_BACKEND: redis://localhost:6379/0
 
           - name: Upload coverage report to PR
+            if: ${{ github.event_name == 'pull_request' }}
             uses: orgoro/coverage@v3.2
             with:
               coverageFile: coverage.xml
