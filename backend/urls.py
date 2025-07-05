@@ -5,6 +5,7 @@ from backend.views import (UserRegisterView, UserLoginView, VerifyEmailView, Use
                            PartnerState, PartnerOrders, PartnerUpdate,
                            BasketView, OrderView)
 from django_rest_passwordreset.views import ResetPasswordConfirm
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 
 urlpatterns = [
@@ -23,4 +24,8 @@ urlpatterns = [
     path('products', ProductInfoView.as_view(), name='products_list'),
     path('basket', BasketView.as_view(), name='basket'),
     path('order', OrderView.as_view(), name='order_list'),
+    # def-spectacular urls
+    path('schema', SpectacularAPIView.as_view(), name='schema'),
+    path('schema/swagger-ui', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('schema/redoc', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]

@@ -23,6 +23,7 @@ from datetime import timedelta
 from backend.tasks import send_mail_task
 from django_rest_passwordreset.serializers import EmailSerializer
 from django_rest_passwordreset.models import ResetPasswordToken, clear_expired, get_password_reset_token_expiry_time
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 # Create your views here.
 
@@ -32,6 +33,43 @@ class UserRegisterView(APIView):
         Класс для регистрации пользователя
     """
 
+    @extend_schema(
+        summary="Регистрация нового пользователя",
+        description="Создаёт нового пользователя с обязательными полями: имя, фамилия, email, пароль, компания, должность. "
+                    "После регистрации отправляется токен подтверждения на email.",
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'first_name': {'type': 'string', 'example': 'Иван'},
+                    'last_name': {'type': 'string', 'example': 'Иванов'},
+                    'email': {'type': 'string', 'example': 'user@example.com'},
+                    'password': {'type': 'string', 'example': 'StrongPassword123!', 'format': 'password'},
+                    'company': {'type': 'string', 'example': 'ООО Компания'},
+                    'position': {'type': 'string', 'example': 'Менеджер'}
+                },
+                'required': ['first_name', 'last_name', 'email', 'password', 'company', 'position']
+            }
+        },
+        responses={
+            200: {
+                'description': 'Пользователь успешно зарегистрирован',
+                'type': 'object',
+                'properties': {
+                    'Status': {'type': 'boolean'}
+                }
+            },
+            400: {
+                'description': 'Ошибка валидации или недостающие данные',
+                'type': 'object',
+                'properties': {
+                    'Status': {'type': 'boolean'},
+                    'Errors': {'type': 'object'}
+                }
+            }
+        },
+        tags=["Пользователь"]
+    )
     def post(self, request):
         if {'first_name', 'last_name', 'email', 'password', 'company', 'position'}.issubset(request.data):
 
@@ -78,6 +116,40 @@ class UserLoginView(APIView):
         Класс для входа пользователя
     """
 
+    @extend_schema(
+        summary="Авторизация пользователя",
+        description="Выполняет вход пользователя по email и паролю. "
+                    "Возвращает токен авторизации, если данные корректны.",
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'email': {'type': 'string', 'example': 'user@example.com'},
+                    'password': {'type': 'string', 'example': 'password123', 'format': 'password'}
+                },
+                'required': ['email', 'password']
+            }
+        },
+        responses={
+            200: {
+                'description': 'Успешный вход',
+                'type': 'object',
+                'properties': {
+                    'Status': {'type': 'boolean'},
+                    'Token': {'type': 'string'}
+                }
+            },
+            400: {
+                'description': 'Ошибка авторизации',
+                'type': 'object',
+                'properties': {
+                    'Status': {'type': 'boolean'},
+                    'Errors': {'type': 'string'}
+                }
+            }
+        },
+        tags=["Пользователь"]
+    )
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
@@ -92,6 +164,40 @@ class VerifyEmailView(APIView):
     Класс для верификации почты пользователя
     """
 
+    @extend_schema(
+        summary="Подтверждение email по токену",
+        description="Подтверждает email пользователя с помощью одноразового токена. "
+                    "Если токен и email совпадают и не истек — аккаунт активируется.",
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'email': {'type': 'string', 'example': 'user@example.com'},
+                    'token': {'type': 'string', 'example': 'abc123xyz789'}
+                },
+                'required': ['email', 'token']
+            }
+        },
+        responses={
+            200: {
+                'description': 'Email успешно подтверждён',
+                'type': 'object',
+                'properties': {
+                    'Status': {'type': 'boolean'},
+                    'message': {'type': 'string'}
+                }
+            },
+            400: {
+                'description': 'Ошибка подтверждения',
+                'type': 'object',
+                'properties': {
+                        'Status': {'type': 'boolean'},
+                        'error': {'type': 'string'},
+                }
+            }
+        },
+        tags=["Пользователь"]
+    )
     def post(self, request):
         if {'email', 'token'}.issubset(request.data):
 
@@ -100,7 +206,7 @@ class VerifyEmailView(APIView):
 
             if verification_token:
                 if verification_token.is_expired():
-                    return Response({'error': 'Токен истек'}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({'Status': False, 'error': 'Токен истек'}, status=status.HTTP_400_BAD_REQUEST)
                 user = verification_token.user
                 user.is_active = True
                 user.save()
@@ -114,6 +220,32 @@ class ResetPasswordRequestView(APIView):
     Класс для управления сбросом пароля пользователя с отправкой почты с помощью Celery
     """
 
+    @extend_schema(
+        summary="Запрос на сброс пароля",
+        description="Отправляет токен для сброса пароля на указанный email. "
+                    "Если у пользователя уже есть активный токен — будет использован он. "
+                    "Иначе создаётся новый.",
+        request=EmailSerializer,
+        responses={
+            200: {
+                'description': 'Токен успешно отправлен',
+                'type': 'object',
+                'properties': {
+                    'Status': {'type': 'boolean'}
+                }
+            },
+            400: {
+                'description': 'Ошибка запроса',
+                'type': 'object',
+                'properties': {
+                    'Status': {'type': 'boolean'},
+                    'error': {'type': 'string'},
+                    'Errors': {'type': 'object'}
+                }
+            }
+        },
+        tags=["Пользователь"]
+    )
     def post(self, request):
         serializer = EmailSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
@@ -159,10 +291,40 @@ class UserDetailView(APIView):
 
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(
+        summary="Получить данные текущего пользователя",
+        description="Возвращает данные авторизованного пользователя (имя, email, телефон и т.д.).",
+        responses={200: UserSerializer},
+        tags=["Пользователь"]
+    )
     def get(self, request):
         user_serializer = UserSerializer(request.user)
         return Response(user_serializer.data)
 
+    @extend_schema(
+        summary="Обновить данные текущего пользователя",
+        description="Позволяет обновить данные текущего пользователя, включая пароль. "
+                    "Если передан новый пароль — он проверяется на соответствие политике безопасности.",
+        request=UserSerializer,
+        responses={
+            200: {
+                'description': 'Данные успешно обновлены',
+                'type': 'object',
+                'properties': {
+                    'Status': {'type': 'boolean'}
+                }
+            },
+            400: {
+                'description': 'Ошибка валидации данных или пароля',
+                'type': 'object',
+                'properties': {
+                    'Status': {'type': 'boolean'},
+                    'Errors': {'type': 'string'},
+                }
+            }
+        },
+        tags=["Пользователь"]
+    )
     def post(self, request):
 
         if 'password' in request.data:
@@ -197,11 +359,48 @@ class ContactView(APIView):
 
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(
+        summary="Получить список контактов пользователя",
+        description="Возвращает все сохранённые контакты текущего авторизованного пользователя.",
+        responses={200: ContactSerializer(many=True)},
+        tags=["Пользователь"]
+    )
     def get(self, request):
         contacts = Contact.objects.filter(user_id=request.user.id)
         serializer = ContactSerializer(contacts, many=True)
         return Response(serializer.data)
 
+    @extend_schema(
+        summary="Добавить новый контакт",
+        description="Создаёт новый контакт для текущего пользователя. ",
+        request=ContactSerializer,
+        responses={
+            201: {
+                'description': 'Контакт успешно создан',
+                'type': 'object',
+                'properties': {
+                        'Status': {'type': 'boolean'},
+                        'id': {'type': 'integer'},
+                        'city': {'type': 'string'},
+                        'street': {'type': 'string'},
+                        'house': {'type': 'string'},
+                        'apartment': {'type': 'string'},
+                        'phone': {'type': 'string'}
+
+                }
+            },
+            400: {
+                'description': 'Ошибка валидации данных',
+                'type': 'object',
+                'properties': {
+                        'Status': {'type': 'boolean', 'example': 'False'},
+                        'Errors': {'type': 'object'}
+
+                }
+            }
+        },
+        tags=["Пользователь"]
+    )
     def post(self, request):
         data = {**request.data, 'user': request.user.id}
         serializer = ContactSerializer(data=data)
@@ -210,6 +409,35 @@ class ContactView(APIView):
             return Response({'Status': True, **serializer.data}, status=status.HTTP_201_CREATED)
         return Response({'Status': False, 'Errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        summary="Обновить существующий контакт",
+        description="Изменяет данные контакта по его ID. ",
+        request=ContactSerializer,
+        responses={
+            200: {
+                'description': 'Контакт успешно обновлён',
+                'type': 'object',
+                'properties': {'Status': {'type': 'boolean'}}
+            },
+            400: {
+                'description': 'Ошибка валидации или отсутствие аргументов',
+                'type': 'object',
+                'properties': {
+                        'Status': {'type': 'boolean'},
+                        'Errors': {'type': 'object'}
+                }
+            },
+            404: {
+                'description': 'Контакт не найден',
+                'type': 'object',
+                'properties': {
+                        'Status': {'type': 'boolean'},
+                        'Errors': {'type': 'string'}
+                }
+            }
+        },
+        tags=["Пользователь"]
+    )
     def put(self, request):
         if 'id' in request.data:
             if request.data['id'].isdigit():
@@ -223,6 +451,43 @@ class ContactView(APIView):
                 return Response({'Status': False, 'Errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
         return Response({'Status': False, 'Errors': 'Недостаточно аргументов'}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        summary="Удалить один или несколько контактов",
+        description="Удаляет контакты по списку ID (передаются через запятую в параметре `items`).",
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'items': {
+                        'type': 'string',
+                        'description': 'Список ID контактов для удаления (через запятую)',
+                        'example': '1,2,3'
+                    }
+                },
+                'required': ['items']
+            }
+        },
+        responses={
+            200: {
+                'description': 'Контакты успешно удалены',
+                'type': 'object',
+                'properties': {
+                        'Status': {'type': 'boolean'},
+                        'detail': {'type': 'string'}
+                }
+            },
+            400: {
+                'description': 'Недостаточно аргументов',
+                'type': 'object',
+                'properties': {
+                        'Status': {'type': 'boolean'},
+                        'Errors': {'type': 'string'}
+
+                }
+            }
+        },
+        tags=["Пользователь"]
+    )
     def delete(self, request):
         items = request.data.get('items')
         if items:
@@ -242,6 +507,12 @@ class ContactView(APIView):
         return Response({'Status': False, 'Errors': 'Недостаточно аргументов'}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema(
+    summary="Получить список всех категорий",
+    description="Возвращает список всех доступных категорий товаров.",
+    responses={200: CategorySerializer(many=True)},
+    tags=["Категории"]
+)
 class CategoriesView(ListAPIView):
     """
     Класс для просмотра списка категорий
@@ -251,6 +522,12 @@ class CategoriesView(ListAPIView):
     serializer_class = CategorySerializer
 
 
+@extend_schema(
+    summary="Получить список активных магазинов",
+    description="Возвращает список всех магазинов, у которых состояние (state) установлено как 'активен'.",
+    responses={200: ShopSerializer(many=True)},
+    tags=["Магазины"]
+)
 class ShopsView(ListAPIView):
     """
     Класс для просмотра списка магазинов
@@ -265,6 +542,19 @@ class ProductInfoView(APIView):
     Класс для просмотра товаров
     """
 
+    @extend_schema(
+        summary="Получить информацию о товарах",
+        description="Возвращает список товаров с фильтрацией по магазину и категории. "
+                    "Можно указать параметры запроса `shop_id` и/или `category_id`.",
+        parameters=[
+            OpenApiParameter(name='shop_id', type=int, location='query',
+                             description='Фильтр по ID магазина'),
+            OpenApiParameter(name='category_id', type=int, location='query',
+                             description='Фильтр по ID категории товара'),
+        ],
+        responses=ProductInfoSerializer(many=True),
+        tags=["Информация о товарах"]
+    )
     def get(self, request):
         query = Q(shop__state=True)
         shop_id = request.query_params.get('shop_id')
@@ -286,7 +576,17 @@ class PartnerState(APIView):
 
     permission_classes = (IsAuthenticated, IsVendor)
 
+    @extend_schema(
+        summary="Получить текущее состояние магазина",
+        responses={
+            200: ShopSerializer,
+            404: {'description': 'Магазин не найден'}},
+        tags=["Партнер"],
+    )
     def get(self, request):
+        """
+            Возвращает текущее состояние (включен/выключен) магазина продавца.
+        """
         try:
             shop = request.user.shop
         except User.shop.RelatedObjectDoesNotExist:
@@ -294,7 +594,29 @@ class PartnerState(APIView):
         serializer = ShopSerializer(shop)
         return Response(serializer.data)
 
+    @extend_schema(
+        summary="Обновить состояние магазина",
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'state': {'type': 'string', 'example': 'True',
+                              'description': 'Значение должно быть строкой "True" или "False"'}
+                },
+                'required': ['state']
+            }
+        },
+
+        responses={
+            200: {'description': 'Статус обновлен успешно'},
+            400: {'description': 'Ошибка валидации или недостаточно данных'},
+        },
+        tags=["Партнер"]
+    )
     def post(self, request):
+        """
+            Изменяет состояние магазина продавца (вкл/выкл). Статус передается в параметре `state` как строка 'True' или 'False'.
+        """
         new_state = request.data.get('state')
         if new_state:
             try:
@@ -307,10 +629,33 @@ class PartnerState(APIView):
 
 class PartnerUpdate(APIView):
     """
-    Класс для обновления прайса продавца
+        Класс для обновления прайса продавца
     """
     permission_classes = (IsAuthenticated, IsVendor)
 
+    @extend_schema(
+        summary="Обновление прайса продавца по внешней ссылке",
+        description="Принимает URL-адрес и проверяет его корректность. "
+                    "Если URL валиден, происходит попытка загрузки данных (например, файла или JSON).",
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'url': {
+                        'type': 'string',
+                        'example': 'https://example.com/data.yaml ',
+                        'description': 'URL, откуда будут загружаться данные'
+                    }
+                },
+                'required': ['url']
+            }
+        },
+        responses={
+            200: {'description': 'Данные успешно загружены'},
+            400: {'description': 'Ошибка: неверный URL или недостаточно данных'},
+        },
+        tags=["Партнер"]
+    )
     def post(self, request):
         url = request.data.get('url')
         if url:
@@ -352,6 +697,13 @@ class PartnerOrders(APIView):
     """
     permission_classes = (IsAuthenticated, IsVendor)
 
+    @extend_schema(
+        summary="Получить список заказов продавца",
+        description="Возвращает список всех заказов, в которых есть товары, принадлежащие магазинам текущего пользователя."
+                    "Включает общую сумму заказа и детали товаров.",
+        responses={200: OrderSerializer(many=True)},
+        tags=["Партнер"]
+    )
     def get(self, request):
         orders = Order.objects.filter(order_items__product_info__shop__user_id=request.user.id).exclude(
             state='basket').prefetch_related(
@@ -366,10 +718,17 @@ class PartnerOrders(APIView):
 
 class BasketView(APIView):
     """
-    Класс для управления корзиной
+        Класс для управления корзиной
     """
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(
+        summary="Получить содержимое корзины",
+        description="Возвращает текущее состояние корзины пользователя (только один заказ со статусом 'basket'). "
+                    "Включает информацию о товарах, категориях и общей стоимости.",
+        responses={200: OrderSerializer(many=True)},
+        tags=["Корзина"]
+    )
     def get(self, request):
         basket = Order.objects.filter(user_id=request.user.id, state='basket').prefetch_related(
             'order_items__product_info__product__category',
@@ -380,6 +739,35 @@ class BasketView(APIView):
         serializer = OrderSerializer(basket, many=True)
         return Response(serializer.data)
 
+    @extend_schema(
+        summary="Добавить товар(ы) в корзину",
+        description="Добавляет один или несколько товаров в корзину пользователя. "
+                    "Если корзины нет — создаётся новая.",
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'items': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'product_info': {'type': 'integer', 'example': 1},
+                                'quantity': {'type': 'integer', 'example': 2}
+                            },
+                            'required': ['product_info', 'quantity']
+                        }
+                    }
+                },
+                'required': ['items']
+            }
+        },
+        responses={
+            200: {'description': 'Товар(ы) успешно добавлены'},
+            400: {'description': 'Ошибка валидации или неверный формат данных'}
+        },
+        tags=["Корзина"]
+    )
     def post(self, request):
 
         items_data = request.data.get('items', [])
@@ -402,6 +790,24 @@ class BasketView(APIView):
 
         return Response({'Status': False, 'Errors': 'Недостаточно аргументов'}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        summary="Удалить товары из корзины",
+        description="Удаляет товары из корзины по их ID. "
+                    "ID передаются в виде строки, разделённой запятыми, например: `1,2,3`.",
+        parameters=[
+            OpenApiParameter(
+                name='items',
+                type=str,
+                location='body',
+                description='Список ID товаров в корзине, которые нужно удалить'
+            )
+        ],
+        responses={
+            200: {'description': 'Товар(ы) успешно удалены'},
+            400: {'description': 'Неверный формат данных или отсутствуют аргументы'}
+        },
+        tags=["Корзина"]
+    )
     def delete(self, request):
         items_data = request.data.get('items')
 
@@ -420,6 +826,35 @@ class BasketView(APIView):
                                 status=status.HTTP_200_OK)
         return Response({'Status': False, 'Errors': 'Недостаточно аргументов'}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        summary="Обновить количество товаров в корзине",
+        description="Изменяет количество определённых товаров в корзине. "
+                    "Ожидает список объектов с полями `id` и `quantity`.",
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'items': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'object',
+                            'properties': {
+                                'id': {'type': 'integer', 'example': 1},
+                                'quantity': {'type': 'integer', 'example': 5}
+                            },
+                            'required': ['id', 'quantity']
+                        }
+                    }
+                },
+                'required': ['items']
+            }
+        },
+        responses={
+            200: {'description': 'Товар(ы) успешно обновлены'},
+            400: {'description': 'Ошибка валидации или неверный формат данных'}
+        },
+        tags=["Корзина"]
+    )
     def put(self, request):
         items_data = request.data.get('items', [])
         if not isinstance(items_data, list):
@@ -444,6 +879,13 @@ class OrderView(APIView):
     """
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(
+        summary="Получить список заказов пользователя",
+        description="Возвращает список всех оформленных заказов пользователя (кроме корзины). "
+                    "Включает информацию о товарах, категориях и общей сумме заказа.",
+        responses={200: OrderSerializer(many=True)},
+        tags=["Заказы"]
+    )
     def get(self, request):
         basket = Order.objects.filter(user_id=request.user.id).exclude(state='basket').prefetch_related(
             'order_items__product_info__product__category',
@@ -454,6 +896,26 @@ class OrderView(APIView):
         serializer = OrderSerializer(basket, many=True)
         return Response(serializer.data)
 
+    @extend_schema(
+        summary="Подтвердить заказ и отправить уведомление",
+        description="Обновляет состояние указанного заказа на 'new' и отправляет email-уведомление пользователю. "
+                    "Требует ID заказа и контактной информации.",
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'id': {'type': 'string', 'example': '1', 'description': 'ID заказа'},
+                    'contact': {'type': 'string', 'example': '2', 'description': 'ID контактной информации'}
+                },
+                'required': ['id', 'contact']
+            }
+        },
+        responses={
+            200: {'description': 'Заказ успешно подтверждён'},
+            400: {'description': 'Ошибка валидации или отсутствуют аргументы'}
+        },
+        tags=["Заказы"]
+    )
     def post(self, request):
         if {'id', 'contact'}.issubset(request.data):
             if request.data['id'].isdigit():
