@@ -3,9 +3,12 @@ from django.urls import path, include
 from backend.views import (UserRegisterView, UserLoginView, VerifyEmailView, UserDetailView, ResetPasswordRequestView,
                            ContactView, ShopsView, CategoriesView, ProductInfoView, GithubLoginView,
                            PartnerState, PartnerOrders, PartnerUpdate,
-                           BasketView, OrderView)
+                           BasketView, OrderView,
+                           SentryDebug)
 from django_rest_passwordreset.views import ResetPasswordConfirm
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+
+from django.urls import path
 
 
 urlpatterns = [
@@ -31,4 +34,6 @@ urlpatterns = [
     # social-auth path
     path("", include('social_django.urls', namespace="social")),
     path('user/login/github', GithubLoginView.as_view(), name='social_github_login'),
+    # Sentry test
+    path('sentry-debug/', SentryDebug.as_view()),
 ]

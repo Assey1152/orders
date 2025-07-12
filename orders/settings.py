@@ -13,6 +13,8 @@ import os
 import random
 from pathlib import Path
 from dotenv import load_dotenv
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,6 +31,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'super_secret_key')
 DEBUG = os.environ.get('DEBUG', default=True) == 'True'
 
 ALLOWED_HOSTS = ['*']
+INTERNAL_IPS = ['127.0.0.1']
 
 # Application definition
 
@@ -41,10 +44,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework.authtoken',
     'django_rest_passwordreset',
+    'cachalot',
     'rest_framework',
     'backend',
     'drf_spectacular',
     'social_django',
+    'debug_toolbar'
 ]
 
 MIDDLEWARE = [
@@ -55,6 +60,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware'
 ]
 
 ROOT_URLCONF = 'orders.urls'
@@ -208,4 +214,16 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.associate_user',
     'social_core.pipeline.social_auth.load_extra_data',
     'social_core.pipeline.user.user_details',
+)
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://localhost:6379/1'
+    }
+}
+
+sentry_sdk.init(
+    dsn="http://171b905212684d6db60cf9290f3aa05b@localhost:9000/2",
+    integrations=[DjangoIntegration()]
 )

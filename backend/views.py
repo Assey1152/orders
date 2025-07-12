@@ -997,3 +997,13 @@ class OrderView(APIView):
                                         status=status.HTTP_200_OK)
 
         return Response({'Status': False, 'Errors': 'Недостаточно аргументов'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SentryDebug(APIView):
+    """
+    Класс для проверки работоспособности Sentry.
+    """
+
+    def get(self, request):
+        division_by_zero = 1 / 0
+        return Response({'Status': True}, status=status.HTTP_200_OK)
