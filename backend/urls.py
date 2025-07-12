@@ -1,11 +1,14 @@
 from django.contrib import admin
 from django.urls import path, include
 from backend.views import (UserRegisterView, UserLoginView, VerifyEmailView, UserDetailView, ResetPasswordRequestView,
-                           ContactView, ShopsView, CategoriesView, ProductInfoView,
+                           ContactView, ShopsView, CategoriesView, ProductInfoView, GithubLoginView,
                            PartnerState, PartnerOrders, PartnerUpdate,
-                           BasketView, OrderView)
+                           BasketView, OrderView,
+                           SentryDebug)
 from django_rest_passwordreset.views import ResetPasswordConfirm
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+
+from django.urls import path
 
 
 urlpatterns = [
@@ -24,8 +27,13 @@ urlpatterns = [
     path('products', ProductInfoView.as_view(), name='products_list'),
     path('basket', BasketView.as_view(), name='basket'),
     path('order', OrderView.as_view(), name='order_list'),
-    # def-spectacular urls
+    # drf-spectacular urls
     path('schema', SpectacularAPIView.as_view(), name='schema'),
     path('schema/swagger-ui', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('schema/redoc', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    # social-auth path
+    path("", include('social_django.urls', namespace="social")),
+    path('user/login/github', GithubLoginView.as_view(), name='social_github_login'),
+    # Sentry test
+    path('sentry-debug/', SentryDebug.as_view()),
 ]

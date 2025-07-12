@@ -24,8 +24,64 @@ from backend.tasks import send_mail_task
 from django_rest_passwordreset.serializers import EmailSerializer
 from django_rest_passwordreset.models import ResetPasswordToken, clear_expired, get_password_reset_token_expiry_time
 from drf_spectacular.utils import extend_schema, OpenApiParameter
+from social_core.backends.github import GithubOAuth2
+from social_django.strategy import DjangoStrategy
+from social_django.models import DjangoStorage
 
 # Create your views here.
+
+
+class GithubLoginView(APIView):
+
+    @extend_schema(
+        summary="Авторизация через GitHub",
+        description="Принимает `access_token`, полученный от GitHub, и выполняет вход пользователя. "
+                    "Если пользователь успешно авторизован — возвращается токен.",
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'access_token': {
+                        'type': 'string',
+                        'description': 'Токен, полученный после аутентификации через GitHub',
+                        'example': '1234'
+                    }
+                },
+                'required': ['access_token']
+            }
+        },
+        responses={
+            200: {
+                'description': 'Успешная авторизация',
+                'type': 'object',
+                'properties': {
+                    'Status': {'type': 'boolean'},
+                    'Token': {'type': 'string'}
+                }
+            },
+            400: {
+                'description': 'Ошибка авторизации',
+                'type': 'object',
+                'properties': {
+                    'Status': {'type': 'boolean'},
+                    'Errors': {'type': 'string'}
+                }
+            }
+        },
+        tags=["Пользователь"]
+    )
+    def post(self, request, *args, **kwargs):
+        access_token = request.data.get('access_token')
+
+        strategy = DjangoStrategy(request=request, storage=DjangoStorage)
+        backend = GithubOAuth2(strategy=strategy)
+        user = backend.do_auth(access_token)
+
+        if not user:
+            return Response({'Status': False, 'Errors': 'Ошибка авторизации'}, status=status.HTTP_400_BAD_REQUEST)
+
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({'Status': True, 'Token': token.key}, status=status.HTTP_200_OK)
 
 
 class UserRegisterView(APIView):
@@ -941,3 +997,13 @@ class OrderView(APIView):
                                         status=status.HTTP_200_OK)
 
         return Response({'Status': False, 'Errors': 'Недостаточно аргументов'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SentryDebug(APIView):
+    """
+    Класс для проверки работоспособности Sentry.
+    """
+
+    def get(self, request):
+        division_by_zero = 1 / 0
+        return Response({'Status': True}, status=status.HTTP_200_OK)
