@@ -36,6 +36,7 @@ INTERNAL_IPS = ['127.0.0.1']
 # Application definition
 
 INSTALLED_APPS = [
+    'baton',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -49,7 +50,8 @@ INSTALLED_APPS = [
     'backend',
     'drf_spectacular',
     'social_django',
-    'debug_toolbar'
+    'debug_toolbar',
+    'baton.autodiscover',
 ]
 
 MIDDLEWARE = [
@@ -203,6 +205,8 @@ LOGIN_REDIRECT_URL = '/api/v1/'
 # Опционально: указываем, какие данные запрашивать у пользователя
 SOCIAL_AUTH_GITHUB_SCOPE = ['user:email']
 
+SOCIAL_AUTH_ADMIN_USER_SEARCH_FIELDS = ['email']
+
 SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.social_details',
     'social_core.pipeline.social_auth.social_uid',
@@ -227,3 +231,55 @@ sentry_sdk.init(
     dsn="http://171b905212684d6db60cf9290f3aa05b@localhost:9000/2",
     integrations=[DjangoIntegration()]
 )
+
+BATON = {
+    'SITE_HEADER': 'Панель управления',
+    'SITE_TITLE': 'Администратор',
+    'INDEX_TITLE': 'Панель управления администратора',
+    'SUPPORT_HREF': 'https://github.com/Assey1152/orders',
+    'COPYRIGHT': 'copyright © 2025 <a href="https://www.otto.to.it">Otto srl</a>',  # HTML is safe
+    'POWERED_BY': '<a href="https://www.otto.to.it">Otto srl</a>',  # HTML is safe
+    'CONFIRM_UNSAVED_CHANGES': True,
+    'SHOW_MULTIPART_UPLOADING': True,
+    'ENABLE_IMAGES_PREVIEW': True,
+    'CHANGELIST_FILTERS_IN_MODAL': False,
+    'CHANGELIST_FILTERS_ALWAYS_OPEN': False,
+    'CHANGELIST_FILTERS_FORM': False,
+    'CHANGEFORM_FIXED_SUBMIT_ROW': True,
+    'COLLAPSABLE_USER_AREA': True,
+    'MENU_ALWAYS_COLLAPSED': False,
+    'MENU_TITLE': 'Главная',
+    'MESSAGES_TOASTS': False,  # True for all, or e.g. ['warning', 'error']
+    'GRAVATAR_DEFAULT_IMG': 'retro',
+    'GRAVATAR_ENABLED': True,
+    'LOGIN_SPLASH': '/static/core/img/login-splash.png',  # Path to your login splash image
+    'FORCE_THEME': None,  # 'light' or 'dark', or None to allow user toggle
+    'IMAGE_PREVIEW_WIDTH': 200,
+    'MENU': (
+        {'type': 'title', 'label': 'Главная', 'apps': ('backend', ), 'icon': 'apps'},
+        {
+            'type': 'app',
+            'name': 'backend',
+            'label': 'Каталог товаров',
+            'icon': 'lock',
+            'models': (
+                {'name': 'product', 'label': 'Продукты'},
+                {'name': 'productinfo', 'label': 'Информация о продукте'},
+                {'name': 'parameter', 'label': 'Параметры'},
+            )
+        },
+        {
+            'type': 'app',
+            'name': 'backend',
+            'label': 'Управление заказами',
+            'models': (
+                {'name': 'order', 'label': 'Заказы'},
+                {'name': 'orderitem', 'label': 'Позиции'},
+            )
+        },
+        {'type': 'model', 'label': 'Пользователи', 'name': 'user', 'app': 'backend'},
+        {'type': 'model', 'label': 'Контакты', 'name': 'contact', 'app': 'backend'},
+        {'type': 'model', 'label': 'Магазины', 'name': 'shop', 'app': 'backend'},
+        {'type': 'model', 'label': 'Категории', 'name': 'category', 'app': 'backend'},
+    )
+}
