@@ -999,6 +999,12 @@ class OrderView(APIView):
         return Response({'Status': False, 'Errors': 'Недостаточно аргументов'}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@extend_schema(
+    summary="Тестовая станица с исключением",
+    description="Вызывает исключение для контроля его в Sentry. ",
+    responses={200: {'Status': 'OK'}},
+    tags=["Sentry"]
+)
 class SentryDebug(APIView):
     """
     Класс для проверки работоспособности Sentry.
