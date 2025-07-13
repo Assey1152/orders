@@ -60,7 +60,7 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(ProductInfo)
 class ProductInfoAdmin(admin.ModelAdmin):
-    list_display = ('id', 'shop', 'model', 'ext_id', 'quantity', 'price', 'price_rrc', )
+    list_display = ('id', 'shop', 'model', 'ext_id', 'quantity', 'price', 'price_rrc', 'image')
 
 
 @admin.register(Parameter)

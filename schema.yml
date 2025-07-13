@@ -358,6 +358,23 @@ paths:
                 items:
                   $ref: '#/components/schemas/ProductInfo'
           description: ''
+  /api/v1/sentry-debug/:
+    get:
+      operationId: api_v1_sentry_debug_retrieve
+      description: 'Вызывает исключение для контроля его в Sentry. '
+      summary: Тестовая станица с исключением
+      tags:
+      - Sentry
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                Status: OK
+          description: ''
   /api/v1/shops:
     get:
       operationId: api_v1_shops_list
@@ -635,6 +652,54 @@ paths:
             application/json:
               schema:
                 description: Успешный вход
+                type: object
+                properties:
+                  Status:
+                    type: boolean
+                  Token:
+                    type: string
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                description: Ошибка авторизации
+                type: object
+                properties:
+                  Status:
+                    type: boolean
+                  Errors:
+                    type: string
+          description: ''
+  /api/v1/user/login/github:
+    post:
+      operationId: api_v1_user_login_github_create
+      description: Принимает `access_token`, полученный от GitHub, и выполняет вход
+        пользователя. Если пользователь успешно авторизован — возвращается токен.
+      summary: Авторизация через GitHub
+      tags:
+      - Пользователь
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                access_token:
+                  type: string
+                  description: Токен, полученный после аутентификации через GitHub
+                  example: '1234'
+              required:
+              - access_token
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                description: Успешная авторизация
                 type: object
                 properties:
                   Status:
@@ -1030,8 +1095,25 @@ components:
           items:
             $ref: '#/components/schemas/ProductParameter'
           readOnly: true
+        image:
+          type: string
+          format: uri
+          nullable: true
+          title: Изображение товара
+        image_small:
+          type: string
+          readOnly: true
+        image_medium:
+          type: string
+          readOnly: true
+        image_large:
+          type: string
+          readOnly: true
       required:
       - id
+      - image_large
+      - image_medium
+      - image_small
       - price
       - price_rrc
       - product
@@ -1126,7 +1208,24 @@ components:
           items:
             $ref: '#/components/schemas/Contact'
           readOnly: true
+        avatar:
+          type: string
+          format: uri
+          nullable: true
+          title: Аватар
+        avatar_small:
+          type: string
+          readOnly: true
+        avatar_medium:
+          type: string
+          readOnly: true
+        avatar_large:
+          type: string
+          readOnly: true
       required:
+      - avatar_large
+      - avatar_medium
+      - avatar_small
       - contacts
       - email
       - id

@@ -32,6 +32,8 @@ DEBUG = os.environ.get('DEBUG', default=True) == 'True'
 
 ALLOWED_HOSTS = ['*']
 INTERNAL_IPS = ['127.0.0.1']
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Application definition
 
@@ -51,6 +53,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'social_django',
     'debug_toolbar',
+    'easy_thumbnails',
     'baton.autodiscover',
 ]
 
@@ -92,7 +95,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('POSTGRES_DB', 'orders'),
         'HOST': os.environ.get('POSTGRES_HOST'),
-        'PORT': os.environ.get('POSTGRES_PORT'),
+        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
         'USER': os.environ.get('POSTGRES_USER', 'postgres'),
         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),
     }
@@ -223,7 +226,7 @@ SOCIAL_AUTH_PIPELINE = (
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://localhost:6379/1'
+        'LOCATION': os.environ.get("CACHES_LOCATION", "redis://localhost:6379/1"),
     }
 }
 
@@ -237,8 +240,6 @@ BATON = {
     'SITE_TITLE': 'Администратор',
     'INDEX_TITLE': 'Панель управления администратора',
     'SUPPORT_HREF': 'https://github.com/Assey1152/orders',
-    'COPYRIGHT': 'copyright © 2025 <a href="https://www.otto.to.it">Otto srl</a>',  # HTML is safe
-    'POWERED_BY': '<a href="https://www.otto.to.it">Otto srl</a>',  # HTML is safe
     'CONFIRM_UNSAVED_CHANGES': True,
     'SHOW_MULTIPART_UPLOADING': True,
     'ENABLE_IMAGES_PREVIEW': True,
@@ -252,7 +253,6 @@ BATON = {
     'MESSAGES_TOASTS': False,  # True for all, or e.g. ['warning', 'error']
     'GRAVATAR_DEFAULT_IMG': 'retro',
     'GRAVATAR_ENABLED': True,
-    'LOGIN_SPLASH': '/static/core/img/login-splash.png',  # Path to your login splash image
     'FORCE_THEME': None,  # 'light' or 'dark', or None to allow user toggle
     'IMAGE_PREVIEW_WIDTH': 200,
     'MENU': (
@@ -283,3 +283,14 @@ BATON = {
         {'type': 'model', 'label': 'Категории', 'name': 'category', 'app': 'backend'},
     )
 }
+
+# Настройки easy-thumbnails
+THUMBNAIL_ALIASES = {
+    '': {
+        'small': {'size': (100, 100), 'crop': True},
+        'medium': {'size': (300, 300), 'crop': True},
+        'large': {'size': (800, 800), 'crop': True},
+    },
+}
+
+THUMBNAIL_BASEDIR = 'thumbs'  # Папка для хранения миниатюр
