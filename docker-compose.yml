@@ -1,17 +1,3 @@
-#
-#services:
-#  db:
-#    image: postgres:14.3-alpine3.15
-#    ports:
-#      - "5432:5432"
-##    environment:
-##      POSTGRES_USER: ${POSTGRES_USER}
-##      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-##      POSTGRES_DB: ${POSTGRES_DB}
-#    env_file:
-#      - /orders/.env
-#
-
 
 volumes:
   db_data:
@@ -38,7 +24,6 @@ services:
       timeout: 5s
       retries: 5
 
-
   migrate:
     build:
       context: .
@@ -49,12 +34,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    entrypoint: python3 manage.py migrate
+    entrypoint: python manage.py migrate &&
+                python manage.py createsuperuser --noinput || true
 
   db:
     image: postgres:16.8-alpine3.21
     ports:
-      - "5431:5432"
+      - "5432:5432"
     env_file:
       - /orders/.env
     volumes:
@@ -75,4 +61,24 @@ services:
       #- static:/var/www/html/static
       - ./static:/static
       - ./nginx-conf:/etc/nginx/conf.d
+
+  redis:
+      restart: unless-stopped
+      image: redis:7.4.4-alpine
+      expose:
+          - 6379
+
+  celery_worker:
+    build:
+      context: .
+    command: celery -A orders worker -l info -P gevent
+    depends_on:
+      - redis
+      - app
+
+    volumes:
+      - .:/orders
+      - static:/orders/static
+    env_file:
+      - /orders/.env
 

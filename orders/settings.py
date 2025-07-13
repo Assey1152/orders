@@ -95,7 +95,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('POSTGRES_DB', 'orders'),
         'HOST': os.environ.get('POSTGRES_HOST'),
-        'PORT': os.environ.get('POSTGRES_PORT'),
+        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
         'USER': os.environ.get('POSTGRES_USER', 'postgres'),
         'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'postgres'),
     }
@@ -226,7 +226,7 @@ SOCIAL_AUTH_PIPELINE = (
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': 'redis://localhost:6379/1'
+        'LOCATION': os.environ.get("CACHES_LOCATION", "redis://localhost:6379/1"),
     }
 }
 
@@ -253,7 +253,6 @@ BATON = {
     'MESSAGES_TOASTS': False,  # True for all, or e.g. ['warning', 'error']
     'GRAVATAR_DEFAULT_IMG': 'retro',
     'GRAVATAR_ENABLED': True,
-    'LOGIN_SPLASH': '/static/core/img/login-splash.png',  # Path to your login splash image
     'FORCE_THEME': None,  # 'light' or 'dark', or None to allow user toggle
     'IMAGE_PREVIEW_WIDTH': 200,
     'MENU': (
