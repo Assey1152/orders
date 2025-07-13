@@ -32,6 +32,8 @@ DEBUG = os.environ.get('DEBUG', default=True) == 'True'
 
 ALLOWED_HOSTS = ['*']
 INTERNAL_IPS = ['127.0.0.1']
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Application definition
 
@@ -51,6 +53,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'social_django',
     'debug_toolbar',
+    'easy_thumbnails',
     'baton.autodiscover',
 ]
 
@@ -237,8 +240,6 @@ BATON = {
     'SITE_TITLE': 'Администратор',
     'INDEX_TITLE': 'Панель управления администратора',
     'SUPPORT_HREF': 'https://github.com/Assey1152/orders',
-    'COPYRIGHT': 'copyright © 2025 <a href="https://www.otto.to.it">Otto srl</a>',  # HTML is safe
-    'POWERED_BY': '<a href="https://www.otto.to.it">Otto srl</a>',  # HTML is safe
     'CONFIRM_UNSAVED_CHANGES': True,
     'SHOW_MULTIPART_UPLOADING': True,
     'ENABLE_IMAGES_PREVIEW': True,
@@ -283,3 +284,14 @@ BATON = {
         {'type': 'model', 'label': 'Категории', 'name': 'category', 'app': 'backend'},
     )
 }
+
+# Настройки easy-thumbnails
+THUMBNAIL_ALIASES = {
+    '': {
+        'small': {'size': (100, 100), 'crop': True},
+        'medium': {'size': (300, 300), 'crop': True},
+        'large': {'size': (800, 800), 'crop': True},
+    },
+}
+
+THUMBNAIL_BASEDIR = 'thumbs'  # Папка для хранения миниатюр

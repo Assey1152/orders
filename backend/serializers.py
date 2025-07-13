@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from backend.models import User, Contact, Shop, Category, ProductInfo, Product, ProductParameter, Order, OrderItem
+from easy_thumbnails.templatetags.thumbnail import thumbnail_url
 
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -17,11 +18,24 @@ class ContactSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     """Serializer для пользователя."""
     contacts = ContactSerializer(read_only=True, many=True)
+    avatar_small = serializers.SerializerMethodField()
+    avatar_medium = serializers.SerializerMethodField()
+    avatar_large = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ('id', 'first_name', 'last_name', 'email', 'type', 'company', 'position', 'contacts')
+        fields = ('id', 'first_name', 'last_name', 'email', 'type', 'company', 'position', 'contacts',
+                  'avatar', 'avatar_small', 'avatar_medium', 'avatar_large')
         read_only_fields = ('id',)
+
+    def get_avatar_small(self, obj):
+        return thumbnail_url(obj.avatar, 'small') if obj.avatar else None
+
+    def get_avatar_medium(self, obj):
+        return thumbnail_url(obj.avatar, 'medium') if obj.avatar else None
+
+    def get_avatar_large(self, obj):
+        return thumbnail_url(obj.avatar, 'large') if obj.avatar else None
 
 
 class LoginSerializer(serializers.Serializer):
@@ -101,11 +115,24 @@ class ProductParameterSerializer(serializers.ModelSerializer):
 class ProductInfoSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
     product_parameter = ProductParameterSerializer(read_only=True, many=True)
+    image_small = serializers.SerializerMethodField()
+    image_medium = serializers.SerializerMethodField()
+    image_large = serializers.SerializerMethodField()
 
     class Meta:
         model = ProductInfo
-        fields = ('id', 'product', 'model', 'shop', 'quantity', 'price', 'price_rrc', 'product_parameter')
+        fields = ('id', 'product', 'model', 'shop', 'quantity', 'price', 'price_rrc', 'product_parameter', 'image',
+                  'image_small', 'image_medium', 'image_large')
         read_only_fields = ('id',)
+
+    def get_image_small(self, obj):
+        return thumbnail_url(obj.image, 'small') if obj.image else None
+
+    def get_image_medium(self, obj):
+        return thumbnail_url(obj.image, 'medium') if obj.image else None
+
+    def get_image_large(self, obj):
+        return thumbnail_url(obj.image, 'large') if obj.image else None
 
 
 class OrderedItemsSerializer(serializers.ModelSerializer):

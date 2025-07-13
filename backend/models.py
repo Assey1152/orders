@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractUser
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from .tasks import generate_thumbnails_async
 
 STATE_CHOICES = (
     ('basket', 'Статус корзины'),
@@ -98,6 +99,7 @@ class User(AbstractUser):
     position = models.CharField(verbose_name='Должность', max_length=40, blank=True)
 
     type = models.CharField(max_length=10, choices=USER_TYPE_CHOICES, default='buyer')
+    avatar = models.ImageField(verbose_name='Аватар', upload_to='avatars/', null=True, blank=True)
 
     class Meta:
         verbose_name = 'Пользователь'
@@ -105,6 +107,12 @@ class User(AbstractUser):
 
     def __str__(self):
         return f'{self.email}'
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        if self.avatar:
+            generate_thumbnails_async.delay(self.id, self.__class__.__name__, 'avatar')
 
 
 class Contact(models.Model):
@@ -202,6 +210,7 @@ class ProductInfo(models.Model):
     quantity = models.PositiveIntegerField(verbose_name='Количество')
     price = models.PositiveIntegerField(verbose_name='Цена')
     price_rrc = models.PositiveIntegerField(verbose_name='Розничная цена')
+    image = models.ImageField(verbose_name='Изображение товара', upload_to='product_images/', null=True, blank=True)
 
     class Meta:
         verbose_name = 'Информация о продукте'
@@ -212,6 +221,12 @@ class ProductInfo(models.Model):
 
     def __str__(self):
         return f'{self.product.name} {self.model}'
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        if self.image:
+            generate_thumbnails_async.delay(self.id, self.__class__.__name__, 'image')
 
 
 class Parameter(models.Model):
